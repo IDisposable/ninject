@@ -1,70 +1,69 @@
-﻿#if !SILVERLIGHT
-namespace Ninject.Tests.Integration
+﻿namespace Ninject.Tests.Integration
 {
+    using System;
     using FluentAssertions;
     using Ninject.Tests.Fakes;
     using Xunit;
 
-    public class DefaultParameterTests
+    public class DefaultParameterTests : IDisposable
     {
+        private readonly StandardKernel kernel;
+
+        public DefaultParameterTests()
+        {
+            this.kernel = new StandardKernel();
+        }
+
+        public void Dispose()
+        {
+            this.kernel.Dispose();
+        }
+
         [Fact]
         public void DefaultValueShouldBeUsedWhenNoneSupplied()
         {
-            using (IKernel kernel = new StandardKernel())
-            {
-                kernel.Bind<Shield>().ToSelf();
+            this.kernel.Bind<Shield>().ToSelf();
 
-                var shield = kernel.Get<Shield>();
-                shield.Should().NotBeNull();
-                shield.Color.Should().Be(ShieldColor.Red);
-            }
+            var shield = this.kernel.Get<Shield>();
+            shield.Should().NotBeNull();
+            shield.Color.Should().Be(ShieldColor.Red);
         }
 
         [Fact]
         public void SpecificValueShouldBeUsedWhenMapped()
         {
-            using (IKernel kernel = new StandardKernel())
-            {
-                kernel.Bind<Shield>().ToSelf();
-                kernel.Bind<ShieldColor>().ToConstant(ShieldColor.Blue);
+            this.kernel.Bind<Shield>().ToSelf();
+            this.kernel.Bind<ShieldColor>().ToConstant(ShieldColor.Blue);
 
-                var shield = kernel.Get<Shield>();
-                shield.Should().NotBeNull();
-                shield.Color.Should().Be(ShieldColor.Blue);
-            }
+            var shield = this.kernel.Get<Shield>();
+            shield.Should().NotBeNull();
+            shield.Color.Should().Be(ShieldColor.Blue);
         }
 
         [Fact]
         public void SpecificValueShouldBeUsedWhenSupplied()
         {
-            using (IKernel kernel = new StandardKernel())
-            {
-                kernel.Bind<Shield>().ToSelf().WithConstructorArgument("color", ShieldColor.Orange);
+            this.kernel.Bind<Shield>().ToSelf().WithConstructorArgument("color", ShieldColor.Orange);
 
-                var shield = kernel.Get<Shield>();
-                shield.Should().NotBeNull();
-                shield.Color.Should().Be(ShieldColor.Orange);
-            }
+            var shield = this.kernel.Get<Shield>();
+            shield.Should().NotBeNull();
+            shield.Color.Should().Be(ShieldColor.Orange);
         }
 
         [Fact]
-        public void DefaultValuesShouldNotInflunceInjectionsToOtherTypes()
+        public void DefaultValuesShouldNotInfluenceInjectionsToOtherTypes()
         {
-            using (IKernel kernel = new StandardKernel())
-            {
-                kernel.Bind<Shield>().ToSelf();
-                kernel.Bind<KiteShield>().ToSelf();
+            this.kernel.Bind<Shield>().ToSelf();
+            this.kernel.Bind<KiteShield>().ToSelf();
 
-                var shield1 = kernel.Get<Shield>();
-                var shield2 = kernel.Get<KiteShield>();
+            var shield1 = this.kernel.Get<Shield>();
+            var shield2 = this.kernel.Get<KiteShield>();
 
-                shield1.Should().NotBeNull();
-                shield1.Color.Should().Be(ShieldColor.Red);
+            shield1.Should().NotBeNull();
+            shield1.Color.Should().Be(ShieldColor.Red);
 
-                shield2.Should().NotBeNull();
-                shield2.Color.Should().Be(ShieldColor.Orange);
-            }
+            shield2.Should().NotBeNull();
+            shield2.Color.Should().Be(ShieldColor.Orange);
         }
     }
 }
-#endif

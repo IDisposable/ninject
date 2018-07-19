@@ -1,18 +1,26 @@
 ﻿namespace Ninject.Tests.Integration.StandardKernelTests
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using FluentAssertions;
+
+    using Ninject.Parameters;
     using Ninject.Tests.Fakes;
     using Xunit;
 
-    public class StandardKernelContext
+    public class StandardKernelContext : IDisposable
     {
         protected StandardKernel kernel;
 
         public StandardKernelContext()
         {
             this.kernel = new StandardKernel();
+        }
+
+        public void Dispose()
+        {
+            this.kernel.Dispose();
         }
     }
 
@@ -21,9 +29,9 @@
         [Fact]
         public void SingleInstanceIsReturnedWhenOneBindingIsRegistered()
         {
-            kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
 
-            var weapon = kernel.Get<IWeapon>();
+            var weapon = this.kernel.Get<IWeapon>();
 
             weapon.Should().NotBeNull();
             weapon.Should().BeOfType<Sword>();
@@ -32,21 +40,23 @@
         [Fact]
         public void ActivationExceptionThrownWhenMultipleBindingsAreRegistered()
         {
-            kernel.Bind<IWeapon>().To<Sword>();
-            kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
 
-            var exception = Assert.Throws<ActivationException>(() => kernel.Get<IWeapon>());
+            var exception = Assert.Throws<ActivationException>(() => this.kernel.Get<IWeapon>());
             
             exception.Message.Should().Contain("More than one matching bindings are available.");
+            exception.Message.Should().Contain("1) binding from IWeapon to Sword");
+            exception.Message.Should().Contain("2) binding from IWeapon to Shuriken");
         }
 
         [Fact]
         public void DependenciesAreInjectedViaConstructor()
         {
-            kernel.Bind<IWeapon>().To<Sword>();
-            kernel.Bind<IWarrior>().To<Samurai>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWarrior>().To<Samurai>();
 
-            var warrior = kernel.Get<IWarrior>();
+            var warrior = this.kernel.Get<IWarrior>();
 
             warrior.Should().NotBeNull();
             warrior.Should().BeOfType<Samurai>();
@@ -60,9 +70,9 @@
         [Fact]
         public void SingleInstanceIsReturnedWhenOneBindingIsRegistered()
         {
-            kernel.Bind<Sword>().ToSelf();
+            this.kernel.Bind<Sword>().ToSelf();
 
-            var weapon = kernel.Get<Sword>();
+            var weapon = this.kernel.Get<Sword>();
 
             weapon.Should().NotBeNull();
             weapon.Should().BeOfType<Sword>();
@@ -71,10 +81,10 @@
         [Fact]
         public void DependenciesAreInjectedViaConstructor()
         {
-            kernel.Bind<IWeapon>().To<Sword>();
-            kernel.Bind<Samurai>().ToSelf();
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<Samurai>().ToSelf();
 
-            var samurai = kernel.Get<Samurai>();
+            var samurai = this.kernel.Get<Samurai>();
 
             samurai.Should().NotBeNull();
             samurai.Weapon.Should().NotBeNull();
@@ -87,7 +97,7 @@
         [Fact]
         public void ImplicitSelfBindingIsRegisteredAndActivated()
         {
-            var weapon = kernel.Get<Sword>();
+            var weapon = this.kernel.Get<Sword>();
 
             weapon.Should().NotBeNull();
             weapon.Should().BeOfType<Sword>();
@@ -96,7 +106,7 @@
         [Fact]
         public void ImplicitSelfBindingForGenericTypeIsRegisteredAndActivated()
         {
-            var service = kernel.Get<GenericService<int>>();
+            var service = this.kernel.Get<GenericService<int>>();
 
             service.Should().NotBeNull();
             service.Should().BeOfType<GenericService<int>>();
@@ -105,31 +115,31 @@
         [Fact]
         public void ThrowsExceptionIfAnUnboundInterfaceIsRequested()
         {
-            Assert.Throws<ActivationException>(() => kernel.Get<IWeapon>());
+            Assert.Throws<ActivationException>(() => this.kernel.Get<IWeapon>());
         }
 
         [Fact]
         public void ThrowsExceptionIfAnUnboundAbstractClassIsRequested()
         {
-            Assert.Throws<ActivationException>(() => kernel.Get<AbstractWeapon>());
+            Assert.Throws<ActivationException>(() => this.kernel.Get<AbstractWeapon>());
         }
 
         [Fact]
         public void ThrowsExceptionIfAnUnboundValueTypeIsRequested()
         {
-            Assert.Throws<ActivationException>(() => kernel.Get<int>());
+            Assert.Throws<ActivationException>(() => this.kernel.Get<int>());
         }
 
         [Fact]
         public void ThrowsExceptionIfAStringIsRequestedWithNoBinding()
         {
-            Assert.Throws<ActivationException>(() => kernel.Get<string>());
+            Assert.Throws<ActivationException>(() => this.kernel.Get<string>());
         }
 
         [Fact]
         public void ThrowsExceptionIfAnOpenGenericTypeIsRequested()
         {
-            Assert.Throws<ActivationException>(() => kernel.Get(typeof(IGeneric<>)));
+            Assert.Throws<ActivationException>(() => this.kernel.Get(typeof(IGeneric<>)));
         }
     }
 
@@ -138,9 +148,9 @@
         [Fact]
         public void GenericParametersAreInferred()
         {
-            kernel.Bind(typeof(IGeneric<>)).To(typeof(GenericService<>));
+            this.kernel.Bind(typeof(IGeneric<>)).To(typeof(GenericService<>));
 
-            var service = kernel.Get<IGeneric<int>>();
+            var service = this.kernel.Get<IGeneric<int>>();
 
             service.Should().NotBeNull();
             service.Should().BeOfType<GenericService<int>>();
@@ -152,9 +162,9 @@
         [Fact]
         public void SingleInstanceIsReturnedWhenOneBindingIsRegistered()
         {
-            kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
 
-            var weapon = kernel.TryGet<IWeapon>();
+            var weapon = this.kernel.TryGet<IWeapon>();
 
             weapon.Should().NotBeNull();
             weapon.Should().BeOfType<Sword>();
@@ -163,10 +173,10 @@
         [Fact]
         public void NullIsReturnedWhenMultipleBindingsAreRegistered()
         {
-            kernel.Bind<IWeapon>().To<Sword>();
-            kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
 
-            var weapon = kernel.TryGet<IWeapon>();
+            var weapon = this.kernel.TryGet<IWeapon>();
 
             weapon.Should().BeNull();
         }
@@ -177,7 +187,7 @@
         [Fact]
         public void ImplicitSelfBindingIsRegisteredAndActivatedIfTypeIsSelfBindable()
         {
-            var weapon = kernel.TryGet<Sword>();
+            var weapon = this.kernel.TryGet<Sword>();
 
             weapon.Should().NotBeNull();
             weapon.Should().BeOfType<Sword>();
@@ -186,7 +196,7 @@
         [Fact]
         public void ReturnsNullIfTypeIsNotSelfBindable()
         {
-            var weapon = kernel.TryGet<IWeapon>();
+            var weapon = this.kernel.TryGet<IWeapon>();
             weapon.Should().BeNull();
         }
 
@@ -195,7 +205,7 @@
         {
             this.kernel.Bind<IWeapon>().To<Sword>().When(ctx => false);
 
-            var weapon = kernel.TryGet<IWeapon>();
+            var weapon = this.kernel.TryGet<IWeapon>();
             weapon.Should().BeNull();
         }
 
@@ -204,7 +214,7 @@
         {
             this.kernel.Bind<IWarrior>().To<Samurai>();
 
-            var warrior = kernel.TryGet<IWarrior>();
+            var warrior = this.kernel.TryGet<IWarrior>();
             warrior.Should().BeNull();
         }
 
@@ -212,10 +222,10 @@
         public void ReturnsNullIfMultipleBindingsExistForADependency()
         {
             this.kernel.Bind<IWarrior>().To<Samurai>();
-            kernel.Bind<IWeapon>().To<Sword>();
-            kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
 
-            var warrior = kernel.TryGet<IWarrior>();
+            var warrior = this.kernel.TryGet<IWarrior>();
             warrior.Should().BeNull();
         }
 
@@ -223,10 +233,116 @@
         public void ReturnsNullIfOnlyUnmetConditionalBindingsExistForADependency()
         {
             this.kernel.Bind<IWarrior>().To<Samurai>();
-            kernel.Bind<IWeapon>().To<Sword>().When(ctx => false);
+            this.kernel.Bind<IWeapon>().To<Sword>().When(ctx => false);
 
-            var warrior = kernel.TryGet<IWarrior>();
+            var warrior = this.kernel.TryGet<IWarrior>();
             warrior.Should().BeNull();
+        }
+    }
+
+    public class WhenTryGetAndThrowOnInvalidBindingIsCalledForInterfaceBoundService : StandardKernelContext
+    {
+        [Fact]
+        public void SingleInstanceIsReturnedWhenOneBindingIsRegistered()
+        {
+            this.kernel.Bind<IWeapon>().To<Sword>();
+
+            var weapon = this.kernel.TryGetAndThrowOnInvalidBinding<IWeapon>();
+
+            weapon.Should().NotBeNull();
+            weapon.Should().BeOfType<Sword>();
+        }
+
+        [Fact]
+        public void ConditionalBindingInstanceIsReturnedWhenConditionalAndUnconditionalBindingAreRegisteredAndConditionIsMet()
+        {
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>().When(ctx => true);
+
+            var weapon = this.kernel.TryGetAndThrowOnInvalidBinding<IWeapon>();
+
+            weapon.Should().NotBeNull();
+            weapon.Should().BeOfType<Shuriken>();
+        }
+
+        [Fact]
+        public void UnconditionalBindingInstanceIsReturnedWhenConditionalAndUnconditionalBindingAreRegisteredAndConditionIsUnmet()
+        {
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>().When(ctx => false);
+
+            var weapon = this.kernel.TryGetAndThrowOnInvalidBinding<IWeapon>();
+
+            weapon.Should().NotBeNull();
+            weapon.Should().BeOfType<Sword>();
+        }
+
+        [Fact]
+        public void ThrowsActivationExceptionWhenSingleInvalidBindingIsRegistered()
+        {
+            this.kernel.Bind<IWarrior>().To<Samurai>();
+
+            this.kernel.Invoking(x => x.TryGetAndThrowOnInvalidBinding<IWarrior>())
+                .Should().Throw<ActivationException>();
+        }
+
+        [Fact]
+        public void ThrowsActivationExceptionWhenMultipleBindingsAreRegistered()
+        {
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
+
+            this.kernel.Invoking(x => x.TryGetAndThrowOnInvalidBinding<IWeapon>())
+                .Should().Throw<ActivationException>();
+        }
+
+        [Fact]
+        public void ThrowsActivationExceptionWhenMultipleBindingsExistForADependency()
+        {
+            this.kernel.Bind<IWarrior>().To<Samurai>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
+
+            this.kernel.Invoking(x => x.TryGetAndThrowOnInvalidBinding<IWarrior>())
+                .Should().Throw<ActivationException>();
+        }
+
+        [Fact]
+        public void ThrowsActivationExceptionWhenOnlyUnmetConditionalBindingsExistForADependency()
+        {
+            this.kernel.Bind<IWarrior>().To<Samurai>();
+            this.kernel.Bind<IWeapon>().To<Sword>().When(ctx => false);
+
+            this.kernel.Invoking(x => x.TryGetAndThrowOnInvalidBinding<IWarrior>())
+                .Should().Throw<ActivationException>();
+        }
+    }
+
+    public class WhenTryGetAndThrowOnInvalidBindingIsCalledForUnboundService : StandardKernelContext
+    {
+        [Fact]
+        public void ImplicitSelfBindingIsRegisteredAndActivatedIfTypeIsSelfBindable()
+        {
+            var weapon = this.kernel.TryGetAndThrowOnInvalidBinding<Sword>();
+
+            weapon.Should().NotBeNull();
+            weapon.Should().BeOfType<Sword>();
+        }
+
+        [Fact]
+        public void ReturnsNullIfTypeIsNotSelfBindable()
+        {
+            var weapon = this.kernel.TryGetAndThrowOnInvalidBinding<IWeapon>();
+            weapon.Should().BeNull();
+        }
+
+        [Fact]
+        public void ReturnsNullIfTypeHasOnlyUnmetConditionalBindings()
+        {
+            this.kernel.Bind<IWeapon>().To<Sword>().When(ctx => false);
+
+            var weapon = this.kernel.TryGetAndThrowOnInvalidBinding<IWeapon>();
+            weapon.Should().BeNull();
         }
     }
 
@@ -235,10 +351,10 @@
         [Fact]
         public void ReturnsSeriesOfItemsInOrderTheyWereBound()
         {
-            kernel.Bind<IWeapon>().To<Sword>();
-            kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
 
-            var weapons = kernel.GetAll<IWeapon>().ToArray();
+            var weapons = this.kernel.GetAll<IWeapon>().ToArray();
 
             weapons.Should().NotBeNull();
             weapons.Length.Should().Be(2);
@@ -251,10 +367,10 @@
         {
             InitializableA.Count = 0;
             InitializableB.Count = 0;
-            kernel.Bind<IInitializable>().To<InitializableA>();
-            kernel.Bind<IInitializable>().To<InitializableB>();
+            this.kernel.Bind<IInitializable>().To<InitializableA>();
+            this.kernel.Bind<IInitializable>().To<InitializableB>();
 
-            IEnumerable<IInitializable> instances = kernel.GetAll<IInitializable>();
+            IEnumerable<IInitializable> instances = this.kernel.GetAll<IInitializable>();
             IEnumerator<IInitializable> enumerator = instances.GetEnumerator();
 
             InitializableA.Count.Should().Be(0);
@@ -272,15 +388,46 @@
         [Fact]
         public void GenericParametersAreInferred()
         {
-            kernel.Bind(typeof(IGeneric<>)).To(typeof(GenericService<>));
-            kernel.Bind(typeof(IGeneric<>)).To(typeof(GenericService2<>));
+            this.kernel.Bind(typeof(IGeneric<>)).To(typeof(GenericService<>));
+            this.kernel.Bind(typeof(IGeneric<>)).To(typeof(GenericService2<>));
 
-            var services = kernel.GetAll<IGeneric<int>>().ToArray();
+            var services = this.kernel.GetAll<IGeneric<int>>().ToArray();
 
             services.Should().NotBeNull();
             services.Length.Should().Be(2);
             services[0].Should().BeOfType<GenericService<int>>();
             services[1].Should().BeOfType<GenericService2<int>>();
+        }
+
+        [Fact]
+        public void OpenGenericBindingsCanBeOverriddenByClosedGenericBindings()
+        {
+            this.kernel.Bind(typeof(IGeneric<>)).To(typeof(GenericService<>));
+            this.kernel.Bind<IGeneric<int>>().To<ClosedGenericService>();
+
+            var service = this.kernel.Get<IGeneric<int>>();
+
+            service.Should().BeOfType<ClosedGenericService>();
+        }
+
+        [Fact]
+        public void OpenGenericsWithCoAndContraVarianceCanBeResolved()
+        {
+            this.kernel.Bind(typeof(IGenericCoContraVarianceService<,>)).To(typeof(OpenGenericCoContraVarianceService<,>));
+
+            var service = this.kernel.Get<IGenericCoContraVarianceService<string, int>>();
+
+            service.Should().BeOfType<OpenGenericCoContraVarianceService<string, int>>();
+        }
+    
+        [Fact]
+        public void ClosedGenericsWithCoAndContraVarianceCanBeResolved()
+        {
+            this.kernel.Bind(typeof(IGenericCoContraVarianceService<string, int>)).To(typeof(ClosedGenericCoContraVarianceService));
+
+            var service = this.kernel.Get<IGenericCoContraVarianceService<string, int>>();
+
+            service.Should().BeOfType<ClosedGenericCoContraVarianceService>();
         }
     }
 
@@ -289,7 +436,7 @@
         [Fact]
         public void ImplicitSelfBindingIsRegisteredAndActivatedIfTypeIsSelfBindable()
         {
-            var weapons = kernel.GetAll<Sword>().ToArray();
+            var weapons = this.kernel.GetAll<Sword>().ToArray();
 
             weapons.Should().NotBeNull();
             weapons.Length.Should().Be(1);
@@ -299,7 +446,7 @@
         [Fact]
         public void ReturnsEmptyEnumerableIfTypeIsNotSelfBindable()
         {
-            var weapons = kernel.GetAll<IWeapon>().ToArray();
+            var weapons = this.kernel.GetAll<IWeapon>().ToArray();
 
             weapons.Should().NotBeNull();
             weapons.Length.Should().Be(0);
@@ -311,18 +458,18 @@
         [Fact]
         public void WhenProviderReturnsNullThenActivationExceptionIsThrown()
         {
-            kernel.Bind<IWeapon>().ToProvider<NullProvider>();
+            this.kernel.Bind<IWeapon>().ToProvider<NullProvider>();
             
-            Assert.Throws<Ninject.ActivationException>(() => kernel.Get<IWeapon>());
+            Assert.Throws<ActivationException>(() => this.kernel.Get<IWeapon>());
         }
     
         [Fact]
         public void WhenProviderReturnsNullButAllowedInSettingsThenNullIsResolved()
         {
-            kernel.Settings.AllowNullInjection = true;
-            kernel.Bind<IWeapon>().ToProvider<NullProvider>();
+            this.kernel.Settings.AllowNullInjection = true;
+            this.kernel.Bind<IWeapon>().ToProvider<NullProvider>();
 
-            var weapon = kernel.Get<IWeapon>();
+            var weapon = this.kernel.Get<IWeapon>();
 
             weapon.Should().BeNull();
         }
@@ -333,10 +480,10 @@
         [Fact]
         public void ReturnsServiceRegisteredViaBindingWithSpecifiedName()
         {
-            kernel.Bind<IWeapon>().To<Shuriken>();
-            kernel.Bind<IWeapon>().To<Sword>().Named("sword");
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().To<Sword>().Named("sword");
 
-            var weapon = kernel.Get<IWeapon>("sword");
+            var weapon = this.kernel.Get<IWeapon>("sword");
 
             weapon.Should().NotBeNull();
             weapon.Should().BeOfType<Sword>();
@@ -345,10 +492,10 @@
         [Fact]
         public void ReturnsServiceRegisteredViaBindingThatMatchesPredicate()
         {
-            kernel.Bind<IWeapon>().To<Shuriken>().WithMetadata("type", "range");
-            kernel.Bind<IWeapon>().To<Sword>().WithMetadata("type", "melee");
+            this.kernel.Bind<IWeapon>().To<Shuriken>().WithMetadata("type", "range");
+            this.kernel.Bind<IWeapon>().To<Sword>().WithMetadata("type", "melee");
 
-            var weapon = kernel.Get<IWeapon>(x => x.Get<string>("type") == "melee");
+            var weapon = this.kernel.Get<IWeapon>(x => x.Get<string>("type") == "melee");
 
             weapon.Should().NotBeNull();
             weapon.Should().BeOfType<Sword>();
@@ -360,14 +507,14 @@
         [Fact]
         public void RemovesAllBindingsForService()
         {
-            kernel.Bind<IWeapon>().To<Shuriken>();
-            kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
 
-            var bindings = kernel.GetBindings(typeof(IWeapon)).ToArray();
+            var bindings = this.kernel.GetBindings(typeof(IWeapon)).ToArray();
             bindings.Length.Should().Be(2);
 
-            kernel.Unbind<IWeapon>();
-            bindings = kernel.GetBindings(typeof(IWeapon)).ToArray();
+            this.kernel.Unbind<IWeapon>();
+            bindings = this.kernel.GetBindings(typeof(IWeapon)).ToArray();
             bindings.Should().BeEmpty();
         }
     }
@@ -377,18 +524,50 @@
         [Fact]
         public void RemovesAllBindingsForServiceAndReplacesWithSpecifiedBinding()
         {
-            kernel.Bind<IWeapon>().To<Shuriken>();
-            kernel.Bind<IWeapon>().To<Sword>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().To<Sword>();
 
-            var bindings = kernel.GetBindings(typeof(IWeapon)).ToArray();
+            var bindings = this.kernel.GetBindings(typeof(IWeapon)).ToArray();
             bindings.Length.Should().Be(2);
 
-            kernel.Rebind<IWeapon>().To<Sword>();
-            bindings = kernel.GetBindings(typeof(IWeapon)).ToArray();
+            this.kernel.Rebind<IWeapon>().To<Sword>();
+            bindings = this.kernel.GetBindings(typeof(IWeapon)).ToArray();
             bindings.Length.Should().Be(1);
         }
     }
+     
+    public class WhenCanResolveIsCalled : StandardKernelContext
+    {
+        [Fact]
+        public void ForImplicitBindings()
+        {
+            this.kernel.Get<Sword>();
+            var request = this.kernel.CreateRequest(typeof(Sword), null, Enumerable.Empty<IParameter>(), false, true);
 
+            this.kernel.CanResolve(request, true).Should().BeFalse();
+            this.kernel.CanResolve(request, false).Should().BeTrue();
+            this.kernel.CanResolve(request).Should().BeTrue();
+        }
+    }
+
+    public class WhenDerivedClassWithPrivateGetterIsResolved
+    {
+        [Fact]
+        public void ItCanBeResolved()
+        {
+            using (var kernel = new StandardKernel(
+                new NinjectSettings
+                {
+                    UseReflectionBasedInjection = true,
+                    InjectNonPublic = true,
+                    InjectParentPrivateProperties = true
+                }))
+            {
+                kernel.Get<DerivedClassWithPrivateGetter>();   
+            }
+        }
+    }
+    
     public class InitializableA : IInitializable
     {
         public static int Count = 0;
@@ -409,11 +588,25 @@
         }
     }
 
+    public class ClassWithPrivateGetter
+    {
+        float Value
+        {
+            get { return 0f; }
+        }
+    }
+
+    public class DerivedClassWithPrivateGetter : ClassWithPrivateGetter { }
     public interface IGeneric<T> { }
     public class GenericService<T> : IGeneric<T> { }
     public class GenericService2<T> : IGeneric<T> { }
+    public class ClosedGenericService : IGeneric<int> { }
     public interface IGenericWithConstraints<T> where T : class { }
     public class GenericServiceWithConstraints<T> : IGenericWithConstraints<T> where T : class { }
+    public interface IGenericCoContraVarianceService<in T, out TK> {}
+    public class ClosedGenericCoContraVarianceService : IGenericCoContraVarianceService<string, int> { }
+    public class OpenGenericCoContraVarianceService<T, TK> : IGenericCoContraVarianceService<T, TK> { }
+
 
     public class NullProvider : Ninject.Activation.Provider<Sword>
     {

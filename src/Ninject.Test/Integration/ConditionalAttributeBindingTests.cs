@@ -5,11 +5,11 @@
     using Xunit;
     using Attribute = System.Attribute;
 
-    public class WeakAttribute : Attribute
+    public sealed class WeakAttribute : Attribute
     {
     }
 
-    public class StrongAttribute : Attribute
+    public sealed class StrongAttribute : Attribute
     {
     }
 
@@ -20,41 +20,29 @@
 
     public class UnknownAttack : IAttackAbility
     {
-        #region IAttackAbility Members
-
         public int Strength
         {
             get { return -1; }
         }
-
-        #endregion
     }
 
     public class WeakAttack : IAttackAbility
     {
-        #region IAttackAbility Members
-
         public int Strength
         {
             get { return 1; }
         }
-
-        #endregion
     }
 
     public class StrongAttack : IAttackAbility
     {
-        #region IAttackAbility Members
-
         public int Strength
         {
             get { return 10; }
         }
-
-        #endregion
     }
 
-    public interface IVarialbeWeapon
+    public interface IVariableWeapon
     {
         string Name { get; }
         IAttackAbility StrongAttack { get; set; }
@@ -62,10 +50,8 @@
         IAttackAbility WtfAttack { get; set; }
     }
 
-    public class Hammer : IVarialbeWeapon
+    public class Hammer : IVariableWeapon
     {
-        #region IWeapon Members
-
         [Inject]
         [Weak]
         public IAttackAbility WeakAttack { get; set; }
@@ -81,8 +67,6 @@
         {
             get { return "hammer"; }
         }
-
-        #endregion
     }
 
     public class ConditionalAttributeBindingTests : DisposableObject
@@ -92,7 +76,7 @@
         public ConditionalAttributeBindingTests()
         {
             this.kernel = new StandardKernel();
-            this.kernel.Bind<IVarialbeWeapon>().To<Hammer>();
+            this.kernel.Bind<IVariableWeapon>().To<Hammer>();
             this.kernel.Bind<IAttackAbility>().To<UnknownAttack>();
             this.kernel.Bind<IAttackAbility>().To<StrongAttack>().WhenTargetHas<StrongAttribute>();
             this.kernel.Bind<IAttackAbility>().To<WeakAttack>().WhenTargetHas<WeakAttribute>();
@@ -108,7 +92,7 @@
         [Fact]
         public void PropertiesAreInjectMatchingAttributeBindings()
         {
-            var hammer = this.kernel.Get<IVarialbeWeapon>();
+            var hammer = this.kernel.Get<IVariableWeapon>();
             hammer.Should().NotBeNull();
             hammer.StrongAttack.Should().BeOfType<StrongAttack>();
             hammer.WeakAttack.Should().BeOfType<WeakAttack>();
@@ -117,7 +101,7 @@
 
         public override void Dispose( bool disposing )
         {
-            if ( disposing && !IsDisposed )
+            if ( disposing && !this.IsDisposed )
             {
                 this.kernel.Dispose();
                 this.kernel = null;

@@ -1,3 +1,4 @@
+using System;
 using Ninject.Infrastructure.Disposal;
 using Ninject.Tests.Fakes;
 using Xunit;
@@ -10,22 +11,22 @@ namespace Ninject.Tests.Unit
 
         protected PropertyInjectionSelectorContext()
         {
-            _kernel = new StandardKernel();
-            _kernel.Bind<IWarrior>()
+            this._kernel = new StandardKernel();
+            this._kernel.Bind<IWarrior>()
                     .To<Ninja>();
-            _kernel.Bind<IWeapon>()
+            this._kernel.Bind<IWeapon>()
                     .To<Sword>();
-            _kernel.Bind<IWeapon>()
+            this._kernel.Bind<IWeapon>()
                     .To<Shuriken>()
                     .WhenTargetHas<InjectAttribute>();
         }
 
         public override void Dispose(bool disposing)
         {
-            if (disposing && !IsDisposed)
+            if (disposing && !this.IsDisposed)
             {
-                _kernel.Dispose();
-                _kernel = null;
+                this._kernel.Dispose();
+                this._kernel = null;
             }
             base.Dispose(disposing);
         }
@@ -33,12 +34,11 @@ namespace Ninject.Tests.Unit
 
     public class PropertyInjectionSelectorTests : PropertyInjectionSelectorContext
     {
-#if !SILVERLIGHT
         [Fact]
         public void NonPublicPropertiesCanBeInjectedWhenEnabled()
         {
-            _kernel.Settings.InjectNonPublic = true;
-            var instance = _kernel.Get<Ninja>();
+            this._kernel.Settings.InjectNonPublic = true;
+            var instance = this._kernel.Get<Ninja>();
 
             Assert.NotNull(instance.Weapon);
             Assert.IsType<Sword>(instance.Weapon);
@@ -49,12 +49,11 @@ namespace Ninject.Tests.Unit
             Assert.NotNull(instance.VerySecretWeaponAccessor);
             Assert.IsType<Shuriken>(instance.VerySecretWeaponAccessor);
         }
-#endif //!SILVERLIGHT
 
         [Fact]
         public void NonPublicPropertiesCannotBeCreatedByDefault()
         {
-            var instance = _kernel.Get<Ninja>();
+            var instance = this._kernel.Get<Ninja>();
 
             Assert.NotNull(instance.Weapon);
             Assert.Null(instance.SecondaryWeapon);

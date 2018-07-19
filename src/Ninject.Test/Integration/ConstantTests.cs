@@ -1,21 +1,23 @@
 ﻿namespace Ninject.Tests.Integration.ConstantTests
 {
+    using System;
+
     using Fakes;
     using FluentAssertions;
     using Xunit;
 
-    public class ConstantContext
+    public class ConstantContext : IDisposable
     {
         protected StandardKernel kernel;
 
         public ConstantContext()
         {
-            this.SetUp();
+            this.kernel = new StandardKernel();
         }
 
-        public void SetUp()
+        public void Dispose()
         {
-            this.kernel = new StandardKernel();
+            this.kernel.Dispose();
         }
     }
 
@@ -25,9 +27,9 @@
         public void TheSameInstanceShouldBeReturned()
         {
             var sword = new Sword();
-            kernel.Bind<IWeapon>().ToConstant(sword);
+            this.kernel.Bind<IWeapon>().ToConstant(sword);
 
-            var instance = kernel.Get<IWeapon>();
+            var instance = this.kernel.Get<IWeapon>();
             instance.Should().BeSameAs(sword);
         }
 
@@ -35,25 +37,25 @@
         public void ConditionalBindingShouldNotAffectUnconditionalBinding()
         {
             var sword = new Sword();
-            kernel.Bind<IWeapon>().ToConstant(sword).WhenInjectedInto<Samurai>();
-            kernel.Bind<IWeapon>().To<Shuriken>();
+            this.kernel.Bind<IWeapon>().ToConstant(sword).WhenInjectedInto<Samurai>();
+            this.kernel.Bind<IWeapon>().To<Shuriken>();
 
-            var samurai = kernel.Get<Samurai>();
+            var samurai = this.kernel.Get<Samurai>();
             samurai.Weapon.Should().BeSameAs(sword);
-            var weapon = kernel.Get<IWeapon>();
+            var weapon = this.kernel.Get<IWeapon>();
             weapon.Should().BeOfType<Shuriken>();
         }
 
         [Fact]
         public void TheBindingShouldOnlyBeResolvedOnce()
         {
-            var builder = kernel.Bind<IWeapon>().ToConstant(new Sword());
-            var provider = new ResolveCountingProvider(builder.Binding.ProviderCallback);
-            builder.Binding.ProviderCallback = ctx => provider.Callback(ctx);
+            var builder = this.kernel.Bind<IWeapon>().ToConstant(new Sword());
+            var provider = new ResolveCountingProvider(builder.BindingConfiguration.ProviderCallback);
+            builder.BindingConfiguration.ProviderCallback = ctx => provider.Callback(ctx);
 
 
-            kernel.Get<IWeapon>();
-            kernel.Get<IWeapon>();
+            this.kernel.Get<IWeapon>();
+            this.kernel.Get<IWeapon>();
 
             provider.Count.Should().Be(1);
         }

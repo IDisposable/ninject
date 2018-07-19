@@ -1,4 +1,3 @@
-#if !NO_MOQ
 namespace Ninject.Tests.Unit
 {
     using System;
@@ -9,7 +8,7 @@ namespace Ninject.Tests.Unit
 
     public class ActivationCacheTests
     {
-        private ActivationCache testee;
+        private readonly ActivationCache testee;
 
         public ActivationCacheTests()
         {
@@ -27,7 +26,7 @@ namespace Ninject.Tests.Unit
         [Fact]
         public void IsActivatedReturnsTrueForObjectsInTheActivationCache()
         {
-            var instance = new object();
+            var instance = new TestObject(42);
 
             this.testee.AddActivatedInstance(instance);
             var activated = this.testee.IsActivated(instance);
@@ -48,7 +47,7 @@ namespace Ninject.Tests.Unit
         [Fact]
         public void IsDeactivatedReturnsTrueForObjectsInTheDeactivationCache()
         {
-            var instance = new object();
+            var instance = new TestObject(42);
 
             this.testee.AddDeactivatedInstance(instance);
             var deactivated = this.testee.IsDeactivated(instance);
@@ -61,16 +60,32 @@ namespace Ninject.Tests.Unit
         [Fact]
         public void DeadObjectsAreRemoved()
         {
-            this.testee.AddActivatedInstance(new object());
-            this.testee.AddDeactivatedInstance(new object());
+            this.testee.AddActivatedInstance(new TestObject(42));
+            this.testee.AddDeactivatedInstance(new TestObject(42));
+
             GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
             this.testee.Prune();
+
             var activatedObjectCount = this.testee.ActivatedObjectCount;
             var deactivatedObjectCount = this.testee.DeactivatedObjectCount;
 
             activatedObjectCount.Should().Be(0);
             deactivatedObjectCount.Should().Be(0);
         }
+
+        [Fact]
+        public void ImplementationDoesNotRelyOnObjectHashCode()
+        {
+            var instance = new TestObject(42);
+
+            this.testee.AddActivatedInstance(instance);
+            instance.ChangeHashCode(43);
+            var isActivated = this.testee.IsActivated(instance);
+
+            isActivated.Should().BeTrue();
+        }
     }
 }
-#endif

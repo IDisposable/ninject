@@ -1,21 +1,22 @@
 ﻿#if !NO_LCG
 using System.Reflection;
+using FluentAssertions;
 using Ninject.Injection;
 using Ninject.Tests.Fakes;
 using Xunit;
 
 namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
 {
-    using FluentAssertions;
-
     public class DynamicMethodInjectorFactoryContext
     {
         protected DynamicMethodInjectorFactory injectorFactory;
 
         public DynamicMethodInjectorFactoryContext()
         {
-            injectorFactory = new DynamicMethodInjectorFactory();
-            injectorFactory.Settings = new NinjectSettings();
+            this.injectorFactory = new DynamicMethodInjectorFactory
+            {
+                Settings = new NinjectSettings()
+            };
         }
     }
 
@@ -26,8 +27,8 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
 
         public WhenConstructorInjectorIsInvoked()
         {
-            constructor = typeof(Samurai).GetConstructor(new[] { typeof(IWeapon) });
-            injector = injectorFactory.Create(constructor);
+            this.constructor = typeof(Samurai).GetConstructor(new[] { typeof(IWeapon) });
+            this.injector = this.injectorFactory.Create(this.constructor);
         }
 
         [Fact]
@@ -35,7 +36,7 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
         {
             var sword = new Sword();
 
-            var samurai = injector.Invoke(new[] { sword }) as Samurai;
+            var samurai = this.injector.Invoke(new[] { sword }) as Samurai;
 
             samurai.Should().NotBeNull();
             samurai.Weapon.Should().BeSameAs(sword);
@@ -44,7 +45,7 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
         [Fact]
         public void CallsConstructorWithNullArgumentIfOneIsSpecified()
         {
-            var samurai = injector.Invoke(new[] { (IWeapon)null }) as Samurai;
+            var samurai = this.injector.Invoke(new[] { (IWeapon)null }) as Samurai;
 
             samurai.Should().NotBeNull();
             samurai.Weapon.Should().BeNull();
@@ -58,8 +59,8 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
 
         public WhenPropertyInjectorIsInvoked()
         {
-            property = typeof(Samurai).GetProperty("Weapon");
-            injector = injectorFactory.Create(property);
+            this.property = typeof(Samurai).GetProperty("Weapon");
+            this.injector = this.injectorFactory.Create(this.property);
         }
 
         [Fact]
@@ -68,7 +69,7 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
             var samurai = new Samurai(null);
             var sword = new Sword();
 
-            injector.Invoke(samurai, sword);
+            this.injector.Invoke(samurai, sword);
 
             samurai.Weapon.Should().BeSameAs(sword);
         }
@@ -77,7 +78,7 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
         public void SetsPropertyValueToNullIfInvokedWithNullArgument()
         {
             var samurai = new Samurai(new Sword());
-            injector.Invoke(samurai, null);
+            this.injector.Invoke(samurai, null);
             samurai.Weapon.Should().BeNull();
         }
     }
@@ -89,15 +90,15 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
 
         public WhenMethodInjectorIsInvokedOnVoidMethod()
         {
-            method = typeof(Samurai).GetMethod("SetName");
-            injector = injectorFactory.Create(method);
+            this.method = typeof(Samurai).GetMethod("SetName");
+            this.injector = this.injectorFactory.Create(this.method);
         }
 
         [Fact]
         public void CallsMethod()
         {
             var samurai = new Samurai(new Sword());
-            injector.Invoke(samurai, new[] { "Bob" });
+            this.injector.Invoke(samurai, new[] { "Bob" });
             samurai.Name.Should().Be("Bob");
         }
     }
@@ -109,17 +110,17 @@ namespace Ninject.Tests.Unit.DynamicMethodInjectorFactoryTests
 
         public WhenMethodInjectorIsInvokedOnNonVoidMethod()
         {
-            method = typeof(Samurai).GetMethod("Attack");
-            injector = injectorFactory.Create(method);
+            this.method = typeof(Samurai).GetMethod("Attack");
+            this.injector = this.injectorFactory.Create(this.method);
         }
 
         [Fact]
         public void CallsMethod()
         {
             var samurai = new Samurai(new Sword());
-            injector.Invoke(samurai, new[] { "evildoer" });
+            this.injector.Invoke(samurai, new[] { "evildoer" });
             samurai.IsBattleHardened.Should().BeTrue();
         }
     }
 }
-#endif //!NO_LCG
+#endif

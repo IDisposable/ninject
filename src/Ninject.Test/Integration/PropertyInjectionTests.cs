@@ -1,5 +1,7 @@
 namespace Ninject.Tests.Integration
 {
+    using System;
+
     using FluentAssertions;
     using Ninject.Infrastructure.Disposal;
     using Ninject.Parameters;
@@ -26,7 +28,6 @@ namespace Ninject.Tests.Integration
             ValidateWarrior(warrior);
         }
 
-#if !SILVERLIGHT
         [Fact]
         public void PropertyValuesOverrideDefaultBinding()
         {
@@ -38,7 +39,6 @@ namespace Ninject.Tests.Integration
             var warrior = this.kernel.Get<IWarrior>();
             ValidateNinjaWarriorWithOverides(warrior);
         }
-#endif //!SILVERLIGHT
     }
 
     public class WithParameterTests : PropertyInjectionTests
@@ -61,7 +61,6 @@ namespace Ninject.Tests.Integration
             ValidateWarrior(warrior);
         }
 
-#if !SILVERLIGHT
         [Fact]
         public void PropertyValuesOverrideDefaultBinding()
         {
@@ -73,12 +72,38 @@ namespace Ninject.Tests.Integration
             var warrior = this.kernel.Get<IWarrior>();
             ValidateNinjaWarriorWithOverides(warrior);
         }
-#endif //!SILVERLIGHT
+
+        [Fact]
+        public void WeakPropertyValue()
+        {
+            this.kernel.Bind<FootSoldier>().ToSelf().InSingletonScope();
+            this.kernel.Bind<IWeapon>().To<Dagger>();
+
+            var weakReference = this.Process();
+
+            var warrior = this.kernel.Get<FootSoldier>();
+
+            warrior.Weapon.Should().BeOfType<Sword>();
+            warrior.Weapon.Should().BeSameAs(weakReference.Target);
+            warrior.Weapon = null;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            weakReference.IsAlive.Should().BeFalse();
+        }
+
+        private WeakReference Process()
+        {
+            var sword = new Sword();
+            this.kernel.Get<FootSoldier>(new WeakPropertyValue("Weapon", sword));
+            return new WeakReference(sword);
+        }
     }
 
     public class WhenNoPropertyOverridesAreSupplied : PropertyInjectionTests
     {
-#if !SILVERLIGHT
         [Fact]
         public void DefaultBindingsAreUsed()
         {
@@ -119,7 +144,21 @@ namespace Ninject.Tests.Integration
             warrior.SecretWeaponAccessor.Should().NotBeNull();
             warrior.VerySecretWeaponAccessor.Should().NotBeNull();
         }
-        
+
+        [Fact]
+        public void GrandParentPropertiesAreInjected()
+        {
+            this.kernel.Settings.InjectNonPublic = true;
+            this.kernel.Settings.InjectParentPrivateProperties = true;
+            var warrior = this.kernel.Get<GrandFatherStyleNinja>();
+
+            warrior.Should().NotBeNull();
+            warrior.OffHandWeapon.Should().NotBeNull();
+            warrior.SecondaryWeapon.Should().NotBeNull();
+            warrior.SecretWeaponAccessor.Should().NotBeNull();
+            warrior.VerySecretWeaponAccessor.Should().NotBeNull();
+        }
+
         private class OwnStyleNinja : Ninja
         {
             public OwnStyleNinja(IWeapon weapon)
@@ -141,14 +180,21 @@ namespace Ninject.Tests.Integration
             {
             }
         }
-#endif //!SILVERLIGHT
+
+        private class GrandFatherStyleNinja : FatherStyleNinja
+        {
+            public GrandFatherStyleNinja(IWeapon weapon)
+                : base(weapon)
+            {
+            }
+        }
     }
 
     public abstract class PropertyInjectionTests : DisposableObject
     {
         protected IKernel kernel;
 
-        public PropertyInjectionTests()
+        protected PropertyInjectionTests()
         {
             this.kernel = new StandardKernel();
             this.kernel.Bind<IWeapon>().To<Shuriken>();
@@ -172,7 +218,7 @@ namespace Ninject.Tests.Integration
 
         public override void Dispose(bool disposing)
         {
-            if (disposing && !IsDisposed)
+            if (disposing && !this.IsDisposed)
             {
                 this.kernel.Dispose();
                 this.kernel = null;
